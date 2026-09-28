@@ -1,0 +1,42 @@
+import json
+import os
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+class HealthHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def do_GET(self) -> None:
+        if self.path != "/health":
+            self._send_json(404, {"error": "not_found"})
+            return
+
+        self._send_json(
+            200,
+            {
+                "service": "marketplace-health-service",
+                "status": "ok",
+            },
+        )
+
+    def _send_json(self, status_code: int, payload: dict[str, str]) -> None:
+        body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, message_format: str, *args: object) -> None:
+        print(f"{self.address_string()} - {message_format % args}")
+
+
+def run() -> None:
+    port = int(os.getenv("PORT", "8080"))
+    server = ThreadingHTTPServer(("0.0.0.0", port), HealthHandler)
+    print(f"marketplace-health-service listening on port {port}")
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    run()
