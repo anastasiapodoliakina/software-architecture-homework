@@ -1,0 +1,53 @@
+@startuml marketplace-container
+!include <C4/C4_Container>
+!pragma layout smetana
+
+title Marketplace - C4 Container Diagram
+LAYOUT_LEFT_RIGHT()
+
+Person(buyer, "Покупатель", "Выбирает категории, товары и оформляет заказы")
+Person(seller, "Продавец", "Управляет товарами")
+System_Ext(payment_provider, "Payment Provider", "Обрабатывает платежные операции")
+System_Ext(email_provider, "Email Provider", "Доставляет письма")
+
+System_Boundary(marketplace, "Marketplace") {
+    Container(web, "Web Application", "Browser application", "Интерфейс покупателей и продавцов")
+    Container(identity, "Identity Service", "Python / HTTP API", "Учетные записи, роли и профили")
+    Container(catalog, "Catalog Service", "Python / HTTP API", "Товары, категории, цены и доступное количество")
+    Container(recommendation, "Recommendation Service", "Python / HTTP API", "Лента по выбранным категориям")
+    Container(order, "Order Service", "Python / HTTP API", "Заказы, состав и статусы")
+    Container(payment, "Payment Service", "Python / HTTP API", "Расчет суммы и учет платежей")
+    Container(notification, "Notification Service", "Python / HTTP API", "Уведомления о статусах заказов")
+    ContainerQueue(broker, "Message Broker", "Технология не выбрана", "Доставка изменений статуса заказа")
+
+    ContainerDb(identity_db, "Identity DB", "SQL", "Пользователи, роли и профили")
+    ContainerDb(catalog_db, "Catalog DB", "SQL", "Товары, категории, цены и количество")
+    ContainerDb(recommendation_db, "Recommendation DB", "SQL", "Выбранные категории пользователя")
+    ContainerDb(order_db, "Order DB", "SQL", "Заказы, позиции, цены, контакт и статусы")
+    ContainerDb(payment_db, "Payment DB", "SQL", "Платежи, суммы и статусы")
+    ContainerDb(notification_db, "Notification DB", "SQL", "Сообщения и результаты отправки")
+}
+
+Rel(buyer, web, "Использует")
+Rel(seller, web, "Использует")
+Rel(web, identity, "Вход и профиль", "HTTPS/JSON, sync")
+Rel(web, catalog, "Просмотр и управление товарами", "HTTPS/JSON, sync")
+Rel(web, recommendation, "Выбирает категории и получает ленту", "HTTPS/JSON, sync")
+Rel(web, order, "Создает заказ и запрашивает статус", "HTTPS/JSON, sync")
+Rel(recommendation, catalog, "Получает товары выбранных категорий", "HTTP/JSON, sync")
+Rel(order, catalog, "Получает цены и доступное количество", "HTTP/JSON, sync")
+Rel(order, payment, "Создает платеж и запрашивает его статус", "HTTP/JSON, sync")
+Rel(payment, payment_provider, "Создает операцию и запрашивает ее статус", "HTTPS/JSON, sync")
+Rel(order, broker, "Передает изменение статуса заказа", "Событие, async")
+Rel(broker, notification, "Доставляет изменение статуса и контакт", "Событие, async")
+Rel(notification, email_provider, "Отправляет письмо", "HTTPS, sync")
+
+Rel(identity, identity_db, "Читает и записывает", "SQL")
+Rel(catalog, catalog_db, "Читает и записывает", "SQL")
+Rel(recommendation, recommendation_db, "Читает и записывает", "SQL")
+Rel(order, order_db, "Читает и записывает", "SQL")
+Rel(payment, payment_db, "Читает и записывает", "SQL")
+Rel(notification, notification_db, "Читает и записывает", "SQL")
+
+SHOW_LEGEND()
+@enduml
